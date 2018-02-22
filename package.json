@@ -1,0 +1,24 @@
+{
+  "name": "@wazzu/iluvatar-api",
+  "version": "0.0.1-beta",
+  "description": "Iluvar api es un framework para generar api restful en poco tiempo con pocas lineas de código",
+  "main": "dist/index.js",
+  "types": "index.d.ts",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Raúl Alexander Mendoza Muñoz",
+  "license": "UNLICENSED",
+  "dependencies": {
+    "@wazzu/iluvatar-core": "git+https://github.com/wazzu3000/iluvatar-core.git",
+    "@wazzu/iluvatar-database": "git+https://github.com/wazzu3000/iluvatar-database.git",
+    "body-parser": "~1.18.2",
+    "express": "~4.16.2"
+  },
+  "devDependencies": {
+    "@types/body-parser": "~1.16.8",
+    "@types/express": "~4.11.0",
+    "@types/node": "~9.4.6",
+    "typescript": "~2.7.1"
+  }
+}
