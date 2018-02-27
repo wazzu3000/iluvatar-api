@@ -11,7 +11,6 @@
   "license": "UNLICENSED",
   "dependencies": {
     "@wazzu/iluvatar-core": "git+https://github.com/wazzu3000/iluvatar-core.git",
-    "@wazzu/iluvatar-database": "git+https://github.com/wazzu3000/iluvatar-database.git",
     "body-parser": "~1.18.2",
     "express": "~4.16.2"
   },

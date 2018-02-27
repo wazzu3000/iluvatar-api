@@ -1,10 +1,9 @@
 declare module '@wazzu/iluvatar-api' {
 
     import IluvatarCore = require('@wazzu/iluvatar-core');
-    import IluvatarDatabase = require('@wazzu/iluvatar-database');
     import express = require('express');
 
-    class App<T extends IluvatarDatabase.IluvatarDatabase> {
+    class App<T extends IluvatarCore.IluvatarDatabase> {
         private expressApp: express.Express;
         private appConfig: IluvatarCore.AppModel;
         private authConfig: IluvatarCore.AuthModel;
@@ -62,9 +61,9 @@ declare module '@wazzu/iluvatar-api' {
     }
 
     class Controller implements IluvatarCore.IController {
-        protected db: IluvatarDatabase.IluvatarDatabase;
+        protected db: IluvatarCore.IluvatarDatabase;
 
-        public constructor(db: IluvatarDatabase.IluvatarDatabase);
+        public constructor(db: IluvatarCore.IluvatarDatabase);
         public get(payload: any): Promise<any[]>;
         public post(payload: any): Promise<any>;
         public put(payload: any): Promise<any>;

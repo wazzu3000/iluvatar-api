@@ -1,5 +1,5 @@
 import { IController } from '@wazzu/iluvatar-core';
-import { IluvatarDatabase, Where } from '@wazzu/iluvatar-database';
+import { IluvatarDatabase, Where } from '@wazzu/iluvatar-core';
 
 export class Controller implements IController {
     public constructor(protected db: IluvatarDatabase) { }

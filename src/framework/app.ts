@@ -1,5 +1,4 @@
-import { Config, AppModel, AuthModel, DatabaseModel, Schema } from '@wazzu/iluvatar-core';
-import { IluvatarDatabase } from '@wazzu/iluvatar-database';
+import { Config, AppModel, AuthModel, DatabaseModel, Schema, IluvatarDatabase } from '@wazzu/iluvatar-core';
 import { Router } from './router';
 import * as express from 'express';
 import * as bodyParser from 'body-parser';
@@ -32,6 +31,7 @@ export class App<T extends IluvatarDatabase> {
         }
         this.expressApp.use(bodyParser.urlencoded({ extended: false }));
         this.expressApp.use(bodyParser.json());
+        Schema.setDbTypesSupported(seed.getTypesSupported());
     }
 
     /**
@@ -117,12 +117,12 @@ export class App<T extends IluvatarDatabase> {
     private loadDynamicSchemas() {
         let config = Config.getInstance();
         let appModel = config.getConfig('app') as AppModel;
-        let schemasPath = appModel.schemasPath
+        let schemasPath = appModel.schemasPath;
         for (let file of this.getAllFiles(schemasPath)) {
             let SchemaClass = this.require(`${schemasPath}/${file}`);
             let schema = new SchemaClass();
             if (schema instanceof Schema) {
-                config.addSchema(schema.name, schema);
+                config.addSchema(schema.name, SchemaClass);
             }
         }
     }

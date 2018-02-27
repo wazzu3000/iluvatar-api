@@ -1,7 +1,6 @@
 import * as express from 'express';
-import { IluvatarDatabase } from '@wazzu/iluvatar-database';
 import { Controller } from './controller';
-import { Config, AppModel } from '@wazzu/iluvatar-core';
+import { Config, AppModel, IluvatarDatabase } from '@wazzu/iluvatar-core';
 
 export class Router<T extends IluvatarDatabase> {
     
@@ -22,6 +21,7 @@ export class Router<T extends IluvatarDatabase> {
                 self.handleError(res, err, db, 404);
             }
             db.openConnection().then(db => {
+                debugger;
                 let controller = new Controller(db);
                 switch (req.method) {
                     case 'GET':
