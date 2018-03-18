@@ -1,40 +1,68 @@
 import * as express from 'express';
 import { Controller } from './controller';
-import { Config, AppModel, IluvatarDatabase } from '@wazzu/iluvatar-core';
+import { Session } from './session';
+import { Config, AppModel, IluvatarDatabase, IluvatarDatabaseInstancier, Controller as ControllerMaster } from '@wazzu/iluvatar-core';
+import { classRequireAuth, methodsRequireAuth } from './decorators/session.decorator';
 
-export class Router<T extends IluvatarDatabase> {
+export class Router {
     
-    public constructor(private seed: T, private expressApp: express.Express) { }
+    public constructor(private iluvatarDatabase: IluvatarDatabase, private expressApp: express.Express) { }
 
     public run(): void {
         let config = Config.getInstance();
         let baseUrl = (config.getConfig('app') as AppModel).routePrefix;
         let self = this;
         this.expressApp.all(`${baseUrl}/*`, (req: express.Request, res: express.Response) => {
-            let db: IluvatarDatabase;
+            let controller: Controller;
+            let db: IluvatarDatabaseInstancier;
             let urlSplited = (req.params[0] as string).split('/');
             let schemaName = urlSplited[0];
-            let id = urlSplited.length > 1 ? urlSplited[1] : null;
-            try {
-                db = self.seed.newInstance(schemaName);
-            } catch(err) {
-                self.handleError(res, err, db, 404);
+            let elementId = urlSplited.length > 1 ? urlSplited[1] : null;
+            let token = req.header('Authorization');
+            let session: Session = null;
+            let CustomController = undefined;
+            debugger;
+            if (token) {
+                session = new Session(token.replace(/^Bearer\s/, ''));
             }
+
+            debugger;
+            db = self.iluvatarDatabase.newIluvatarDatabaseInstancier(schemaName);
+            CustomController = config.getController(schemaName);
+            if (CustomController) {
+                controller = new CustomController(db);
+            } else {
+                controller = new Controller(db);
+            }
+
+            // Verify the access token
+            if (!session) {
+                let className = controller.constructor.name;
+                if (classRequireAuth(className) || methodsRequireAuth(className, elementId)) {
+                    self.handleError(res, 'Is required an auth token to access', null);
+                    return;
+                }
+            }
+            
             db.openConnection().then(db => {
-                debugger;
-                let controller = new Controller(db);
+                if (elementId && controller[elementId]) {
+                    controller[elementId](req.body).then(conRes => self.handleResponse(res, conRes, db)).catch(err => self.handleError(res, err, db));
+                    return;
+                }
+                controller.session = session;
+                controller.elementId = elementId;
                 switch (req.method) {
                     case 'GET':
-                        controller.get(req.query, id).then(conRes => self.handleResponse(res, conRes, db)).catch(err => self.handleError(res, err, db));
+                        controller.get(req.query).then(conRes => self.handleResponse(res, conRes, db)).catch(err => self.handleError(res, err, db));
                         break;
                     case 'POST':
-                        controller.post(req.body, id).then(conRes => self.handleResponse(res, conRes, db, 201)).catch(err => self.handleError(res, err, db));
+                        controller.post(req.body).then(conRes => self.handleResponse(res, conRes, db, 201)).catch(err => self.handleError(res, err, db));
                         break;
                     case 'PUT':
-                        controller.put(req.body, id).then(conRes => self.handleResponse(res, conRes, db)).catch(err => self.handleError(res, err, db));
+                        controller.put(req.body).then(conRes => self.handleResponse(res, conRes, db)).catch(err => self.handleError(res, err, db));
                         break;
                     case 'DELETE':
-                        controller.delete(req.query, id).then(conRes => self.handleResponse(res, conRes, db)).catch(err => self.handleError(res, err, db));
+                        controller.delete(req.query).then(conRes => self.handleResponse(res, conRes, db)).catch(err => self.handleError(res, err, db));
                         break;
                 }
             });
@@ -43,7 +71,7 @@ export class Router<T extends IluvatarDatabase> {
 
     //private handleRequest
 
-    private handleResponse(res: express.Response, controllerRes: any, db: IluvatarDatabase, httpCode: number = 200) {
+    private handleResponse(res: express.Response, controllerRes: any, db: IluvatarDatabaseInstancier, httpCode: number = 200) {
         db.closeConnection();
         res.status(httpCode).send({
             header: {
@@ -54,7 +82,7 @@ export class Router<T extends IluvatarDatabase> {
         });
     }
 
-    private handleError(res: express.Response, errorMessage: string, db: IluvatarDatabase, errorCode: number = 1000) {
+    private handleError(res: express.Response, errorMessage: string, db: IluvatarDatabaseInstancier, errorCode: number = 1000) {
         let httpCode = errorCode >= 300 && errorCode <= 600 ? errorCode : 200;
         if (db) {
             db.closeConnection();

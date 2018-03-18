@@ -3,7 +3,7 @@ declare module '@wazzu/iluvatar-api' {
     import IluvatarCore = require('@wazzu/iluvatar-core');
     import express = require('express');
 
-    class App<T extends IluvatarCore.IluvatarDatabase> {
+    class App {
         private expressApp: express.Express;
         private appConfig: IluvatarCore.AppModel;
         private authConfig: IluvatarCore.AuthModel;
@@ -12,13 +12,13 @@ declare module '@wazzu/iluvatar-api' {
         /**
          * Crea una nueva aplicación con la configuración por default
          */
-        public constructor(seed: T);
+        public constructor(DatabaseClass: IluvatarCore.ClassType);
         /**
          * Crea una nueva aplicación y establece la configuración de esta desde un
          * archivo en formato json
          * @param configFile Ruta del archivo de configuración
          */
-        public constructor(seed: T, configFile: string);
+        public constructor(DatabaseClass: IluvatarCore.ClassType, configFile: string);
 
         /**
          * Establece la configuración de esta desde un archivo en formato json
@@ -60,10 +60,8 @@ declare module '@wazzu/iluvatar-api' {
         private setConfig<T extends Object>(configStored: T, configSended: T);
     }
 
-    class Controller implements IluvatarCore.IController {
-        protected db: IluvatarCore.IluvatarDatabase;
-
-        public constructor(db: IluvatarCore.IluvatarDatabase);
+    class Controller extends IluvatarCore.Controller {
+        public constructor(db: IluvatarCore.IluvatarDatabaseInstancier);
         public get(payload: any): Promise<any[]>;
         public post(payload: any): Promise<any>;
         public put(payload: any): Promise<any>;

@@ -1,11 +1,14 @@
-import { Config, AppModel, AuthModel, DatabaseModel, Schema, IluvatarDatabase } from '@wazzu/iluvatar-core';
-import { Router } from './router';
+import { Config, AppModel, AuthModel, DatabaseModel, Schema, IluvatarDatabase, ClassType } from '@wazzu/iluvatar-core';
 import * as express from 'express';
 import * as bodyParser from 'body-parser';
 import * as fs from 'fs';
 import * as path from 'path';
+import { Router } from './router';
+import { Controller } from './controller';
+import { SessionController } from './session.controller';
 
-export class App<T extends IluvatarDatabase> {
+export class App {
+    private iluvatarDatabase: IluvatarDatabase;
     private expressApp: express.Express;
     private appConfig: AppModel;
     private authConfig: AuthModel;
@@ -14,24 +17,28 @@ export class App<T extends IluvatarDatabase> {
     /**
      * Crea una nueva aplicación con la configuración por default
      */
-    public constructor(seed: T);
+    public constructor(DatabaseClass: ClassType);
     /**
      * Crea una nueva aplicación y establece la configuración de esta desde un
      * archivo en formato json
      * @param configFile Ruta del archivo de configuración
      */
-    public constructor(seed: T, configFile: string);
-    public constructor(private seed: T, configFile: string = '') {
+    public constructor(DatabaseClass: ClassType, configFile: string);
+    public constructor(DatabaseClass: ClassType, configFile: string = '') {
         this.expressApp = express();
         this.appConfig = new AppModel();
         this.authConfig = new AuthModel();
         this.databaseConfig = new DatabaseModel();
+        this.iluvatarDatabase = new DatabaseClass();
+        if (!(this.iluvatarDatabase instanceof IluvatarDatabase)) {
+            throw 'The database class must be a class that inherit from `IluvatarDatabase`';
+        }
         if (configFile) {
             this.loadConfig(configFile);
         }
         this.expressApp.use(bodyParser.urlencoded({ extended: false }));
         this.expressApp.use(bodyParser.json());
-        Schema.setDbTypesSupported(seed.getTypesSupported());
+        Schema.setDbTypesSupported(this.iluvatarDatabase.getTypesSupported());
     }
 
     /**
@@ -96,12 +103,13 @@ export class App<T extends IluvatarDatabase> {
         let config = Config.getInstance();
         let self = this;
         config.setConfig('app', this.appConfig);
-        config.setConfig('auth', this.databaseConfig);
+        config.setConfig('auth', this.authConfig);
         config.setConfig('database', this.databaseConfig);
         this.loadDynamicSchemas();
+        this.loadDynamicControllers();
         this.expressApp.listen(this.appConfig.port, () => {
             console.log(message);
-            new Router<T>(self.seed, this.expressApp).run();
+            new Router(this.iluvatarDatabase, this.expressApp).run();
         });
     }
 
@@ -128,7 +136,8 @@ export class App<T extends IluvatarDatabase> {
     }
 
     private loadDynamicControllers() {
-
+        let config = Config.getInstance();
+        config.addController('session', SessionController);
     }
 
     private getAllFiles(schemasPath: string): any[] {

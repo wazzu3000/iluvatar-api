@@ -1,39 +1,55 @@
-import { IController } from '@wazzu/iluvatar-core';
-import { IluvatarDatabase, Where } from '@wazzu/iluvatar-core';
+import { Controller as ControllerMaster } from '@wazzu/iluvatar-core';
+import { IluvatarDatabaseInstancier, Where } from '@wazzu/iluvatar-core';
+import { Session } from './session';
+import { requireAuth } from './decorators/session.decorator';
 
-export class Controller implements IController {
-    public constructor(protected db: IluvatarDatabase) { }
+@requireAuth
+export class Controller extends ControllerMaster {
+    private _session: Session;
 
-    public get(payload: any, id?: any): Promise<any[]> {
+    public constructor(db: IluvatarDatabaseInstancier) {
+        super(db);
+    }
+
+    public get session(): Session {
+        return this._session;
+    }
+
+    public set session(value: Session) {
+        this._session = value;
+    }
+
+    @requireAuth()
+    public get(payload: any): Promise<any[]> {
         let query = this.db.find();
         for (let i in payload) {
             query.addWhere(new Where(i, '=', payload[i]));
         }
-        if (id) {
-            query.addWhere(new Where(this.db.defaultId, '=', id));
+        if (this.elementId) {
+            query.addWhere(new Where(this.db.defaultId, '=', this.elementId));
         }
         return query.doQuery();
     }
 
-    public post(payload: any, id?: any): Promise<any> {
+    public post(payload: any): Promise<any> {
         return this.db.create(payload).doQuery();
     }
 
-    public put(payload: any, id?: any): Promise<any> {
+    public put(payload: any): Promise<any> {
         let query = this.db.update(payload);
-        if (id) {
-            query.addWhere(new Where(this.db.defaultId, '=', id));
+        if (this.elementId) {
+            query.addWhere(new Where(this.db.defaultId, '=', this.elementId));
         }
         return query.doQuery();
     }
 
-    public delete(payload: any, id?: any): Promise<boolean> {
+    public delete(payload: any): Promise<boolean> {
         let query = this.db.delete();
         for (let i in payload) {
             query.addWhere(new Where(i, '=', payload[i]));
         }
-        if (id) {
-            query.addWhere(new Where(this.db.defaultId, '=', id));
+        if (this.elementId) {
+            query.addWhere(new Where(this.db.defaultId, '=', this.elementId));
         }
         return query.doQuery();
     }

@@ -11,12 +11,16 @@
   "license": "UNLICENSED",
   "dependencies": {
     "@wazzu/iluvatar-core": "git+https://github.com/wazzu3000/iluvatar-core.git",
+    "bcrypt": "^1.0.3",
     "body-parser": "~1.18.2",
-    "express": "~4.16.2"
+    "express": "~4.16.2",
+    "jsonwebtoken": "^8.2.0"
   },
   "devDependencies": {
+    "@types/bcrypt": "^1.0.0",
     "@types/body-parser": "~1.16.8",
     "@types/express": "~4.11.0",
+    "@types/jsonwebtoken": "^7.2.5",
     "@types/node": "~9.4.6",
     "typescript": "~2.7.1"
   }
