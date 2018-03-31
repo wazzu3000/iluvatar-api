@@ -21,12 +21,10 @@ export class Router {
             let token = req.header('Authorization');
             let session: Session = null;
             let CustomController = undefined;
-            debugger;
             if (token) {
                 session = new Session(token.replace(/^Bearer\s/, ''));
             }
 
-            debugger;
             db = self.iluvatarDatabase.newIluvatarDatabaseInstancier(schemaName);
             CustomController = config.getController(schemaName);
             if (CustomController) {

@@ -1,4 +1,4 @@
-import { Config, AppModel, AuthModel, DatabaseModel, Schema, IluvatarDatabase, ClassType } from '@wazzu/iluvatar-core';
+import { Config, AppModel, AuthModel, DatabaseModel, Schema, IluvatarDatabase, ClassType, Field } from '@wazzu/iluvatar-core';
 import * as express from 'express';
 import * as bodyParser from 'body-parser';
 import * as fs from 'fs';
@@ -122,14 +122,25 @@ export class App {
         }
     }
 
+    /**
+     * Read all files from the configuration and load every scheme and save this
+     * on memory
+     */
     private loadDynamicSchemas() {
         let config = Config.getInstance();
         let appModel = config.getConfig('app') as AppModel;
+        let authModel = config.getConfig('auth') as AuthModel;
         let schemasPath = appModel.schemasPath;
         for (let file of this.getAllFiles(schemasPath)) {
             let SchemaClass = this.require(`${schemasPath}/${file}`);
             let schema = new SchemaClass();
             if (schema instanceof Schema) {
+                if (schema.name == authModel.userSchemaName) {
+                    // If the user scheme is invalid throws an exception
+                    if (!this.userSchemaIsValid(schema)) {
+                        throw new Error('The user schema wasn\'t properly configured');
+                    }
+                }
                 config.addSchema(schema.name, SchemaClass);
             }
         }
@@ -137,15 +148,52 @@ export class App {
 
     private loadDynamicControllers() {
         let config = Config.getInstance();
+        let appModel = config.getConfig('app') as AppModel;
         config.addController('session', SessionController);
+        let controllersPath = appModel.controllersPath;
+        for (let file of this.getAllFiles(controllersPath)) {
+            let ControllerClass = this.require(`${controllersPath}/${file}`);
+            let controller = new ControllerClass();
+            if (controller instanceof Controller) {
+                config.addController(controller.constructor.name, ControllerClass);
+            }
+        }
     }
 
-    private getAllFiles(schemasPath: string): any[] {
-        return fs.readdirSync(schemasPath).filter(file => path.extname(file) == '.js');
+    private getAllFiles(schemasPath: string): string[] {
+        return !fs.existsSync(schemasPath) ? [] : fs.readdirSync(schemasPath).filter(file => path.extname(file) == '.js');
     }
 
     private require(filePath: string): any {
         let fileContent = fs.readFileSync(filePath);
         return eval(fileContent.toString());
+    }
+
+    private userSchemaIsValid(schema: Schema): boolean {
+        let userIsValid = false;
+        let passwordIsValid = false;
+        let rolIsValid = false;
+        let authConfig = Config.getInstance().getConfig('auth') as AuthModel;
+        let field: Field;
+        for (let i in schema.fields) {
+            switch (i) {
+                case authConfig.userFieldName:
+                    field = schema.fields[i];
+                    userIsValid = field.unique && field.required;
+                    break;
+                case authConfig.passwordFieldName:
+                    field = schema.fields[i];
+                    passwordIsValid = field.required;
+                    break;
+                case authConfig.rolFieldName:
+                    field = schema.fields[i];
+                    rolIsValid = field.required;
+                    break;
+            }
+            if (userIsValid && passwordIsValid && rolIsValid) {
+                return true;
+            }
+        }
+        return false;
     }
 }
