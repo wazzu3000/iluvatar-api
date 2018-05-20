@@ -1,15 +1,17 @@
 import * as bcrypt from 'bcrypt';
-import { IluvatarDatabaseInstancier, AuthModel, DatabaseModel, Config, Where } from '@wazzu/iluvatar-core';
+import { IluvatarDatabaseInstancier, AuthModel, DatabaseModel, Config, Where, AuthUserModel, EmailModel } from '@wazzu/iluvatar-core';
 import { Controller } from './controller';
 import { Session } from './session';
 
 export class SessionController extends Controller {
-    protected auth: AuthModel;
+    protected authConfig: AuthModel;
+    protected userConfig: AuthUserModel;
 
     public constructor(db?: IluvatarDatabaseInstancier) {
         super(db);
-        this.auth = Config.getInstance().getConfig('auth') as AuthModel;
-        this.db.schemaName = this.auth.userSchemaName;
+        this.authConfig = Config.getInstance().getConfig('auth') as AuthModel;
+        this.userConfig = this.authConfig.user;
+        this.db.schemaName = this.userConfig.schemaName;
     }
 
     public get(payload: any): Promise<any[]> {
@@ -38,11 +40,9 @@ export class SessionController extends Controller {
     }
 
     public signin(payload: any): Promise<any> {
-        let passwordFieldName = this.auth.passwordFieldName;
         let self = this;
-        return bcrypt.hash(payload[passwordFieldName], 10).then(hash => {
-            payload[passwordFieldName] = hash;
-            return self.db.create(payload).doQuery();
+        return this.createUser(payload).then(res => {
+            return self.sendEmailByNewUser(res);
         });
     }
 
@@ -51,8 +51,8 @@ export class SessionController extends Controller {
     }
 
     protected findUser(payload: any): Promise<any> {
-        let userFieldName = this.auth.userFieldName;
-        let passwordFieldName = this.auth.passwordFieldName;
+        let userFieldName = this.userConfig.userFieldName;
+        let passwordFieldName = this.userConfig.passwordFieldName;
         if (!payload[userFieldName] || !payload[passwordFieldName]) {
             throw new Error(`The ${userFieldName} and ${passwordFieldName} fields are required`);
         }
@@ -70,5 +70,27 @@ export class SessionController extends Controller {
                 return user;
             });
         });
+    }
+
+    protected createUser(payload: any): Promise<any> {
+        let userFieldName = this.userConfig.userFieldName;
+        let passwordFieldName = this.userConfig.passwordFieldName;
+        if (!payload[passwordFieldName]) {
+            throw new Error(`The ${userFieldName} and ${passwordFieldName} fields are required`);
+        }
+        let self = this;
+        return bcrypt.hash(payload[passwordFieldName], 10).then(hash => {
+            payload[passwordFieldName] = hash;
+            return self.db.create(payload).doQuery();
+        });
+    }
+
+    protected generateEmailBodyByNewUser(payload: any): string {
+        let userFieldName = this.userConfig.userFieldName;
+        return `Welcome ${payload[userFieldName]}, your account was created`;
+    }
+
+    private sendEmailByNewUser(payload: any) {
+
     }
 }

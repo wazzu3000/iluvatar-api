@@ -14,7 +14,8 @@
     "bcrypt": "^1.0.3",
     "body-parser": "~1.18.2",
     "express": "~4.16.2",
-    "jsonwebtoken": "^8.2.0"
+    "jsonwebtoken": "^8.2.0",
+    "nodemailer": "^4.6.4"
   },
   "devDependencies": {
     "@types/bcrypt": "^1.0.0",
@@ -22,6 +23,7 @@
     "@types/express": "~4.11.0",
     "@types/jsonwebtoken": "^7.2.5",
     "@types/node": "~9.4.6",
+    "@types/nodemailer": "^4.6.0",
     "typescript": "~2.7.1"
   }
 }

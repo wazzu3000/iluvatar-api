@@ -108,8 +108,15 @@ export class App {
         this.loadDynamicSchemas();
         this.loadDynamicControllers();
         this.expressApp.listen(this.appConfig.port, () => {
-            console.log(message);
-            new Router(this.iluvatarDatabase, this.expressApp).run();
+            console.log(message || 'The application is running');
+            this.expressApp.all(`${this.appConfig.routePrefix}/*`, (req, res) => {
+                try {
+                    new Router(req, res).run(this.iluvatarDatabase);
+                } catch(err) {
+                    console.error(err.stack || `The error ${err} haven't attribute stack`);
+                    res.status(500).send('An unexpected error has occurred');
+                }
+            });
         });
     }
 
@@ -130,12 +137,13 @@ export class App {
         let config = Config.getInstance();
         let appModel = config.getConfig('app') as AppModel;
         let authModel = config.getConfig('auth') as AuthModel;
+        let userModel = authModel.user;
         let schemasPath = appModel.schemasPath;
         for (let file of this.getAllFiles(schemasPath)) {
             let SchemaClass = this.require(`${schemasPath}/${file}`);
             let schema = new SchemaClass();
             if (schema instanceof Schema) {
-                if (schema.name == authModel.userSchemaName) {
+                if (schema.name == userModel.schemaName) {
                     // If the user scheme is invalid throws an exception
                     if (!this.userSchemaIsValid(schema)) {
                         throw new Error('The user schema wasn\'t properly configured');
@@ -171,21 +179,26 @@ export class App {
 
     private userSchemaIsValid(schema: Schema): boolean {
         let userIsValid = false;
+        let emailIsValid = false;
         let passwordIsValid = false;
         let rolIsValid = false;
-        let authConfig = Config.getInstance().getConfig('auth') as AuthModel;
+        let userConfig = (Config.getInstance().getConfig('auth') as AuthModel).user;
         let field: Field;
         for (let i in schema.fields) {
             switch (i) {
-                case authConfig.userFieldName:
+                case userConfig.userFieldName:
                     field = schema.fields[i];
-                    userIsValid = field.unique && field.required;
+                    userIsValid = typeof(schema.javascriptTypes[i]) === 'string' && /^string$/i.test(schema.javascriptTypes[i] as string) && field.unique && field.required;
                     break;
-                case authConfig.passwordFieldName:
+                case userConfig.emailFieldName:
                     field = schema.fields[i];
-                    passwordIsValid = field.required;
+                    userIsValid = typeof(schema.javascriptTypes[i]) === 'string' && /^string$/i.test(schema.javascriptTypes[i] as string) && field.unique && field.required;
                     break;
-                case authConfig.rolFieldName:
+                case userConfig.passwordFieldName:
+                    field = schema.fields[i];
+                    passwordIsValid = typeof(schema.javascriptTypes[i]) === 'string' && /^string$/i.test(schema.javascriptTypes[i] as string) && field.required;
+                    break;
+                case userConfig.rolFieldName:
                     field = schema.fields[i];
                     rolIsValid = field.required;
                     break;
@@ -197,3 +210,6 @@ export class App {
         return false;
     }
 }
+
+
+// TODO Add code to generate unique keys from the Schemas imported

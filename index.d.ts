@@ -60,6 +60,20 @@ declare module '@wazzu/iluvatar-api' {
         private setConfig<T extends Object>(configStored: T, configSended: T);
     }
 
+    class EmailService {
+
+        private emailConfig: IluvatarCore.EmailModel;
+        private receivers: string[];
+        private subject: string;
+        private body: string;
+    
+        private constructor(receivers: string[], subject: string, body: string);
+        public static send(receivers: string[], subject: string, body: string): Promise<void>;
+        private startService(): Promise<void>;
+        private useDefaultAccount(): Promise<void>;
+        private sendEmails(): Promise<void>;
+    }
+
     class Controller extends IluvatarCore.Controller {
         public constructor(db: IluvatarCore.IluvatarDatabaseInstancier);
         public get(payload: any): Promise<any[]>;
@@ -68,6 +82,17 @@ declare module '@wazzu/iluvatar-api' {
         public delete(payload: any): Promise<boolean>;
     }
 
-    //export { AppModel, AuthModel, DatabaseModel, Field, FieldType, Schema } from '@wazzu/iluvatar-core';
-    //export IluvatarCore.AppModel;
+    class SessionController extends Controller {
+        protected auth: IluvatarCore.AuthModel;
+
+        public constructor(db?: IluvatarCore.IluvatarDatabaseInstancier);
+        public get(payload: any): Promise<any[]>;
+        public post(payload: any): Promise<any>;
+        public put(payload: any): Promise<any>;
+        public delete(payload: any): Promise<boolean>;
+        public login(payload: any): Promise<string>;
+        public signin(payload: any): Promise<any>;
+        public recoveryPass(payload: any);
+        protected findUser(payload: any): Promise<any>;
+    }
 }
